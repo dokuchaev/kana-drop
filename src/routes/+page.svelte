@@ -595,9 +595,9 @@
       grid-template-rows: auto minmax(0, 1fr) auto;
     }
     .topbar {
-      height: 68px;
-      min-height: 68px;
-      padding: 5px 10px;
+      height: 56px;
+      min-height: 56px;
+      padding: 4px 8px;
       grid-template-columns: .65fr .9fr 1.45fr;
       gap: 8px;
       border-bottom-width: 3px;
@@ -617,21 +617,22 @@
     .control-button { width: 30px; height: 30px; border-width: 2px; border-radius: 5px; font-size: 17px; }
     .restart-button { font-size: 22px; }
     .game-card {
-      width: calc(100% - 12px);
-      height: calc(100% - 16px);
-      margin: 8px auto;
+      width: 100%;
+      height: 100%;
+      margin: 0;
       border-width: 3px;
-      border-radius: 6px;
+      border-radius: 0;
     }
     .arena {
       flex: 1 1 auto;
       min-height: 0;
     }
     .entry-row { display: none; }
-    .keyboard-card { padding: 7px 8px max(8px, env(safe-area-inset-bottom)); }
-    .key-row { gap: 4px; }
-    .key { height: clamp(34px, 4.5dvh, 40px); font-size: 14px; }
-    .key.utility { width: 17%; font-size: 10px; }
+    .keyboard-card { padding: 4px 6px max(4px, env(safe-area-inset-bottom)); }
+    .keyboard { gap: 2px; }
+    .key-row { gap: 3px; }
+    .key { width: auto; height: clamp(44px, 5.4dvh, 48px); flex: 1 1 0; font-size: 24px; }
+    .key.utility { width: 17%; flex: 0 0 17%; font-size: 10px; }
     .footer-note { font-size: 8px; }
   }
   @media (min-width: 601px) and (max-width: 767px) {
@@ -652,13 +653,13 @@
     .romaji-entry { min-height: 34px; }
   }
   @media (max-width: 600px) and (max-height: 760px) {
-    .topbar { height: 68px; min-height: 68px; }
+    .topbar { height: 56px; min-height: 56px; }
     .score-value { font-size: 25px; }
     .hud-label { font-size: 12px; }
-    .pause-button { width: 40px; height: 40px; }
-    .game-card { height: calc(100% - 10px); margin-block: 5px; }
-    .keyboard { gap: 3px; }
+    .pause-button { width: 30px; height: 30px; }
+    .game-card { height: 100%; margin-block: 0; }
+    .keyboard { gap: 2px; }
     .key-row { gap: 3px; }
-    .key { height: 32px; }
+    .key { height: 44px; }
   }
 </style>

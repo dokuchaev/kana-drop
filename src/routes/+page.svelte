@@ -21,11 +21,6 @@
   let damageFlash = $state(false);
   let damageFlashTimer: ReturnType<typeof setTimeout>;
 
-  const specialKeys = [
-    { label: '⌫ СТЕРЕТЬ', key: 'backspace', className: 'utility', aria: 'Стереть' },
-    { label: 'ОЧИСТИТЬ ВВОД', key: 'clear', className: 'space', aria: 'Очистить ввод' }
-  ];
-
   function saveBestScore() {
     if (score > best) {
       best = score;
@@ -185,16 +180,6 @@
   </section>
 
   <section class="keyboard-card" aria-label="Виртуальная клавиатура">
-    <div class="keyboard-head">
-      <div>
-        <span class="keyboard-title">ВВЕДИ ЧТЕНИЕ</span>
-        <span class="keyboard-help">Клавиатура устройства тоже работает</span>
-      </div>
-      <div class="mini-stats">
-        <span>РЕКОРД <b>{best}</b></span>
-        <span>ОШИБКИ <b>{mistakes}</b></span>
-      </div>
-    </div>
     <div class="keyboard">
       {#each rows as row}
         <div class="key-row">
@@ -202,27 +187,12 @@
             <button class="key" data-key={key} onclick={() => game?.input(key)}>{key.toUpperCase()}</button>
           {/each}
           {#if row === 'zxcvbnm'}
-            {#each specialKeys.slice(0, 1) as special}
-              <button
-                class="key {special.className}"
-                data-key={special.key}
-                aria-label={special.aria}
-                onclick={() => game?.input(special.key)}>{special.label}</button
-              >
-            {/each}
+            <button class="key utility" data-key="backspace" aria-label="Стереть" onclick={() => game?.input('backspace')}>
+              ⌫ СТЕРЕТЬ
+            </button>
           {/if}
         </div>
       {/each}
-      <div class="key-row">
-        {#each specialKeys.slice(1) as special}
-          <button
-            class="key {special.className}"
-            data-key={special.key}
-            aria-label={special.aria}
-            onclick={() => game?.input(special.key)}>{special.label}</button
-          >
-        {/each}
-      </div>
     </div>
   </section>
   <div class="footer-note">Набери чтение каны, пока она не коснулась земли</div>
@@ -257,7 +227,7 @@
     flex-direction: column;
     gap: 16px;
   }
-  .topbar, .brand, .stats, .stat, .game-heading, .entry-row, .keyboard-head {
+  .topbar, .brand, .stats, .stat, .game-heading, .entry-row {
     display: flex;
     align-items: center;
   }
@@ -373,9 +343,6 @@
   .romaji-entry.empty { color: #607080; }
   .feedback { width: 95px; color: var(--muted); font-size: 12px; }
   .keyboard-card { padding: 14px 18px 17px; }
-  .keyboard-head { justify-content: space-between; margin-bottom: 12px; }
-  .keyboard-title { font-size: 12px; font-weight: 800; }
-  .keyboard-help { color: var(--muted); font-size: 11px; }
   .keyboard { display: grid; gap: 7px; max-width: 680px; margin: 0 auto; }
   .key-row { display: flex; justify-content: center; gap: 6px; }
   .key {
@@ -418,9 +385,6 @@
     .romaji-entry { width: 86px; min-height: 38px; font-size: 18px; }
     .feedback { width: 77px; font-size: 10px; }
     .keyboard-card { padding: 12px 8px 13px; }
-    .keyboard-head { margin: 0 4px 10px; }
-    .keyboard-title { font-size: 11px; }
-    .keyboard-help { font-size: 9px; }
     .keyboard { gap: 6px; }
     .key-row { gap: 4px; }
     .key { height: clamp(34px, 9vw, 40px); border-radius: 6px; font-size: 12px; }
@@ -448,7 +412,7 @@
     image-rendering: pixelated;
   }
   .app {
-    width: min(100%, 2122px);
+    width: min(100%, 2300px);
     height: 100vh;
     height: 100dvh;
     min-height: 0;
@@ -462,9 +426,9 @@
     overflow: hidden;
   }
   .topbar {
-    height: clamp(78px, 10dvh, 104px);
-    min-height: 78px;
-    padding: 10px 4.7%;
+    height: clamp(64px, 7dvh, 76px);
+    min-height: 64px;
+    padding: 6px 3%;
     display: grid;
     grid-template-columns: 1fr minmax(220px, 34vw) 1fr;
     gap: 28px;
@@ -517,8 +481,8 @@
   .pause-icon { font-size: 32px; line-height: 1; font-family: Arial, sans-serif; font-weight: 900; }
   .play-icon { font-size: 20px; }
   .game-card {
-    width: calc(100% - 48px);
-    max-width: 1997px;
+    width: calc(100% - 24px);
+    max-width: 2200px;
     height: calc(100% - 24px);
     min-height: 0;
     margin: 12px auto;
@@ -548,7 +512,7 @@
     background: #1b2942;
     border-top: 3px solid #354b70;
   }
-  .entry-label, .keyboard-title { color: #c5d5ef; font-size: 12px; font-weight: 900; letter-spacing: .1em; }
+  .entry-label { color: #c5d5ef; font-size: 12px; font-weight: 900; letter-spacing: .1em; }
   .romaji-entry {
     min-height: 40px;
     width: 108px;
@@ -562,35 +526,28 @@
   .feedback { width: auto; min-width: 100px; color: #d7e4fa; font-size: 12px; }
   .keyboard-card {
     margin: 0;
-    padding: 14px 18px 18px;
+    padding: 8px 18px 12px;
     background: #17233a;
     border: 0;
     border-top: 2px solid #34486d;
     border-radius: 0;
     box-shadow: none;
   }
-  .keyboard-head { max-width: 690px; margin: 0 auto 12px; justify-content: space-between; }
-  .keyboard-head > div:first-child { display: grid; gap: 4px; }
-  .keyboard-title { display: block; }
-  .keyboard-help { color: #9bacc9; font-size: 10px; }
-  .mini-stats { display: flex; gap: 14px; color: #9bacc9; font-size: 9px; }
-  .mini-stats b { margin-left: 4px; color: #fff; font-size: 13px; }
   .keyboard { gap: 6px; }
   .key-row { gap: 5px; }
   .key {
-    height: 38px;
+    height: 42px;
     color: #e3edff;
     background: #263957;
     border: 1px solid #3e567d;
     border-bottom: 4px solid #1b2942;
     border-radius: 4px;
     font-family: inherit;
-    font-size: 12px;
+    font-size: 15px;
     box-shadow: 0 2px 0 #0d1729;
   }
   .key:active { background: #375782; transform: translateY(2px); }
-  .key.utility { color: #ffb09f; }
-  .key.space { color: #b6c8e7; }
+  .key.utility { width: 16%; color: #ffb09f; font-size: 12px; }
   .footer-note { display: none; }
   .damage-flash {
     position: fixed;
@@ -638,15 +595,15 @@
       grid-template-rows: auto minmax(0, 1fr) auto;
     }
     .topbar {
-      height: 78px;
-      min-height: 78px;
-      padding: 8px 12px;
+      height: 68px;
+      min-height: 68px;
+      padding: 5px 10px;
       grid-template-columns: .65fr .9fr 1.45fr;
       gap: 8px;
       border-bottom-width: 3px;
     }
     .hud-label { font-size: 13px; }
-    .score-value { font-size: 27px; }
+    .score-value { font-size: 25px; }
     .wave-block { gap: 2px; }
     .wave-count { font-size: 15px; line-height: 1.1; }
     .wave-count span { display: block; font-size: 8px; }
@@ -660,7 +617,7 @@
     .control-button { width: 30px; height: 30px; border-width: 2px; border-radius: 5px; font-size: 17px; }
     .restart-button { font-size: 22px; }
     .game-card {
-      width: calc(100% - 20px);
+      width: calc(100% - 12px);
       height: calc(100% - 16px);
       margin: 8px auto;
       border-width: 3px;
@@ -670,20 +627,11 @@
       flex: 1 1 auto;
       min-height: 0;
     }
-    .entry-row { min-height: 54px; flex-basis: 54px; gap: 8px; }
-    .entry-label { font-size: 9px; }
-    .romaji-entry { width: 82px; min-height: 36px; font-size: 17px; }
-    .feedback { min-width: 82px; font-size: 9px; }
-    .keyboard-card { padding: 8px 8px max(8px, env(safe-area-inset-bottom)); }
-    .keyboard-head { margin: 0 3px 10px; }
-    .keyboard-title { font-size: 10px; }
-    .keyboard-help { font-size: 8px; }
-    .mini-stats { gap: 7px; font-size: 8px; }
-    .mini-stats b { font-size: 10px; }
+    .entry-row { display: none; }
+    .keyboard-card { padding: 7px 8px max(8px, env(safe-area-inset-bottom)); }
     .key-row { gap: 4px; }
-    .key { height: clamp(29px, 4.2dvh, 35px); font-size: 11px; }
-    .key.utility { width: 17%; font-size: 8px; }
-    .key.space { width: 45%; font-size: 8px; }
+    .key { height: clamp(34px, 4.5dvh, 40px); font-size: 14px; }
+    .key.utility { width: 17%; font-size: 10px; }
     .footer-note { font-size: 8px; }
   }
   @media (min-width: 601px) and (max-width: 767px) {
@@ -691,14 +639,15 @@
     .app { grid-template-rows: auto minmax(0, 1fr) auto; }
     .game-card { width: calc(100% - 28px); height: calc(100% - 20px); margin: 10px auto; }
     .arena { flex: 1 1 auto; min-height: 0; }
+    .entry-row { display: none; }
   }
   @media (max-height: 760px) {
-    .topbar { height: 72px; min-height: 72px; padding-block: 6px; }
+    .topbar { height: 64px; min-height: 64px; padding-block: 4px; }
     .score-value { font-size: 31px; }
     .hud-label { font-size: 15px; }
     .timer-icon { font-size: 36px; }
     .pause-button { width: 50px; height: 50px; }
-    .game-card { height: calc(100% - 16px); margin-block: 8px; }
+    .game-card { height: calc(100% - 12px); margin-block: 6px; }
     .entry-row { min-height: 50px; flex-basis: 50px; }
     .romaji-entry { min-height: 34px; }
   }
@@ -708,10 +657,8 @@
     .hud-label { font-size: 12px; }
     .pause-button { width: 40px; height: 40px; }
     .game-card { height: calc(100% - 10px); margin-block: 5px; }
-    .keyboard-head { margin-bottom: 6px; }
     .keyboard { gap: 3px; }
     .key-row { gap: 3px; }
-    .key { height: 27px; }
-    .keyboard-help { display: none; }
+    .key { height: 32px; }
   }
 </style>

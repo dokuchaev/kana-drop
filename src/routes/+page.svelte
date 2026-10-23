@@ -186,11 +186,6 @@
           {#each row as key}
             <button class="key" data-key={key} onclick={() => game?.input(key)}>{key.toUpperCase()}</button>
           {/each}
-          {#if row === 'zxcvbnm'}
-            <button class="key utility" data-key="backspace" aria-label="Стереть" onclick={() => game?.input('backspace')}>
-              ⌫ СТЕРЕТЬ
-            </button>
-          {/if}
         </div>
       {/each}
     </div>
@@ -361,7 +356,6 @@
     transition: background .12s ease, transform .08s ease;
   }
   .key:active { background: #37505d; transform: translateY(1px); }
-  .key.utility { width: 13%; color: var(--cyan); font-size: 11px; }
   .key.space { width: 38%; color: var(--muted); font-size: 10px; }
   .footer-note { color: #748296; text-align: center; font-size: 11px; }
   @media (max-width: 600px) {
@@ -388,7 +382,6 @@
     .keyboard { gap: 6px; }
     .key-row { gap: 4px; }
     .key { height: clamp(34px, 9vw, 40px); border-radius: 6px; font-size: 12px; }
-    .key.utility { width: 15%; font-size: 9px; }
     .key.space { width: 35%; font-size: 9px; }
     .footer-note { font-size: 9px; }
   }
@@ -547,7 +540,6 @@
     box-shadow: 0 2px 0 #0d1729;
   }
   .key:active { background: #375782; transform: translateY(2px); }
-  .key.utility { width: 16%; color: #ffb09f; font-size: 12px; }
   .footer-note { display: none; }
   .damage-flash {
     position: fixed;
@@ -630,9 +622,14 @@
     .entry-row { display: none; }
     .keyboard-card { padding: 4px 6px max(4px, env(safe-area-inset-bottom)); }
     .keyboard { gap: 2px; }
+    .overlay { backdrop-filter: none; }
     .key-row { gap: 3px; }
-    .key { width: auto; height: clamp(44px, 5.4dvh, 48px); flex: 1 1 0; font-size: 24px; }
-    .key.utility { width: 17%; flex: 0 0 17%; font-size: 10px; }
+    .key {
+      width: min(36px, calc((100vw - 39px) / 10));
+      height: clamp(44px, 5.4dvh, 48px);
+      flex: 0 0 min(36px, calc((100vw - 39px) / 10));
+      font-size: 24px;
+    }
     .footer-note { font-size: 8px; }
   }
   @media (min-width: 601px) and (max-width: 767px) {

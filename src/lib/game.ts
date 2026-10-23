@@ -237,7 +237,9 @@ export class KanaDropGame {
   private sceneGroundY(): number {
     const image = this.backgroundImage;
     if (!image.complete || image.naturalWidth === 0) return this.height - 30;
-    const scale = Math.min(this.width / image.naturalWidth, this.height / image.naturalHeight);
+    const scale = this.width / this.height <= 0.8
+      ? Math.max(this.width / image.naturalWidth, this.height / image.naturalHeight)
+      : Math.min(this.width / image.naturalWidth, this.height / image.naturalHeight);
     const imageHeight = image.naturalHeight * scale;
     const imageTop = (this.height - imageHeight) / 2;
     return imageTop + imageHeight * 0.92;
@@ -246,6 +248,10 @@ export class KanaDropGame {
   private playfieldBounds(): { left: number; right: number } {
     const image = this.backgroundImage;
     if (!image.complete || image.naturalWidth === 0) {
+      return { left: 0, right: this.width };
+    }
+
+    if (this.width / this.height <= 0.8) {
       return { left: 0, right: this.width };
     }
 
@@ -689,6 +695,20 @@ export class KanaDropGame {
     if (!ctx) throw new Error('Background canvas context is unavailable');
     ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
     ctx.imageSmoothingEnabled = true;
+
+    if (this.width / this.height <= 0.8) {
+      const scale = Math.max(this.width / image.naturalWidth, this.height / image.naturalHeight);
+      const imageWidth = image.naturalWidth * scale;
+      const imageHeight = image.naturalHeight * scale;
+      ctx.drawImage(
+        image,
+        (this.width - imageWidth) / 2,
+        (this.height - imageHeight) / 2,
+        imageWidth,
+        imageHeight
+      );
+      return;
+    }
 
     const coverScale = Math.max(this.width / image.naturalWidth, this.height / image.naturalHeight);
     const coverWidth = image.naturalWidth * coverScale;

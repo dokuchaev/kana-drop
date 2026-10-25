@@ -1,12 +1,23 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { KanaDropGame } from '$lib/game';
+  import cabinetIcon from '../images/icon-lk.png';
+
+  type Attempt = {
+    id: number;
+    timestamp: number;
+    score: number;
+    durationSeconds: number;
+  };
 
   const rows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
   let canvas: HTMLCanvasElement;
   let game: KanaDropGame | undefined;
   let score = $state(0);
-  let best = $state(0);
+  let attempts = $state<Attempt[]>([]);
+  let cabinetOpen = $state(false);
+  let cabinetPausedGame = false;
+  let storageError = $state('');
   let hits = $state(0);
   let mistakes = $state(0);
   let seconds = $state(0);
@@ -21,15 +32,67 @@
   let damageFlash = $state(false);
   let damageFlashTimer: ReturnType<typeof setTimeout>;
 
-  function saveBestScore() {
-    if (score > best) {
-      best = score;
-      localStorage.setItem('kanaDropBest', String(best));
+  let bestAttempt = $derived(
+    attempts.reduce<Attempt | null>(
+      (best, attempt) => (!best || attempt.score > best.score ? attempt : best),
+      null
+    )
+  );
+
+  function persistAttempts(nextAttempts: Attempt[]): boolean {
+    try {
+      localStorage.setItem('kanaDropAttempts', JSON.stringify(nextAttempts));
+      attempts = nextAttempts;
+      storageError = '';
+      return true;
+    } catch (error) {
+      console.error('Не удалось сохранить результаты игры:', error);
+      storageError = 'Не удалось сохранить результаты на этом устройстве.';
+      return false;
+    }
+  }
+
+  function recordAttempt() {
+    const timestamp = Date.now();
+    const nextAttempts = [
+      {
+        id: Math.max(timestamp, ...attempts.map((attempt) => attempt.id + 1)),
+        timestamp,
+        score,
+        durationSeconds: seconds
+      },
+      ...attempts
+    ].slice(0, 100);
+    persistAttempts(nextAttempts);
+  }
+
+  function clearAttempts() {
+    try {
+      localStorage.removeItem('kanaDropAttempts');
+      localStorage.removeItem('kanaDropBest');
+      attempts = [];
+      storageError = '';
+    } catch (error) {
+      console.error('Не удалось очистить результаты игры:', error);
+      storageError = 'Не удалось очистить сохранённые результаты.';
+    }
+  }
+
+  function openCabinet() {
+    cabinetPausedGame = gameActive && !paused;
+    if (cabinetPausedGame) game?.togglePause();
+    cabinetOpen = true;
+  }
+
+  function closeCabinet() {
+    cabinetOpen = false;
+    if (cabinetPausedGame) {
+      cabinetPausedGame = false;
+      game?.togglePause();
     }
   }
 
   function startGame() {
-    saveBestScore();
     game?.start();
     overlayVisible = false;
     gameOver = false;
@@ -53,8 +116,36 @@
     return `${minutes}:${remainder}`;
   }
 
+  function formatDate(timestamp: number): string {
+    return new Intl.DateTimeFormat('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(timestamp);
+  }
+
   onMount(() => {
-    best = Number(localStorage.getItem('kanaDropBest') || 0);
+    try {
+      const storedAttempts: unknown = JSON.parse(localStorage.getItem('kanaDropAttempts') || '[]');
+      if (!Array.isArray(storedAttempts)) throw new Error('Некорректный формат истории попыток');
+      attempts = storedAttempts.filter(
+        (attempt): attempt is Attempt =>
+          typeof attempt === 'object' &&
+          attempt !== null &&
+          Number.isSafeInteger(attempt.id) &&
+          Number.isFinite(attempt.timestamp) &&
+          Number.isFinite(attempt.score) &&
+          Number.isFinite(attempt.durationSeconds) &&
+          attempt.score >= 0 &&
+          attempt.durationSeconds >= 0
+      ).slice(0, 100);
+    } catch (error) {
+      console.error('Не удалось загрузить результаты игры:', error);
+      storageError = 'Не удалось загрузить сохранённые результаты.';
+    }
+
     game = new KanaDropGame(canvas, {
       onScore: (value) => (score = value),
       onProgress: (value) => (hits = value),
@@ -74,7 +165,7 @@
         manuallyEnded = manual;
         gameActive = false;
         overlayVisible = true;
-        saveBestScore();
+        recordAttempt();
         feedback = manual ? 'Тест завершён' : 'Раунд завершён';
         feedbackColor = '#ff91a5';
       }
@@ -82,6 +173,10 @@
 
     function handleKeydown(event: KeyboardEvent) {
       if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (cabinetOpen) {
+        if (event.key === 'Escape') closeCabinet();
+        return;
+      }
       const key = event.key.toLowerCase();
       if (key === 'backspace') {
         event.preventDefault();
@@ -142,11 +237,12 @@
         onclick={() => game?.end()}
       >■</button>
       <button
-        class="control-button restart-button"
-        aria-label="Перезапустить тест"
-        title="Перезапустить тест"
-        onclick={startGame}
-      >↻</button>
+        class="control-button cabinet-button"
+        aria-label="Личный кабинет"
+        title="Личный кабинет"
+        aria-haspopup="dialog"
+        onclick={openCabinet}
+      ><img src={cabinetIcon} alt="" /></button>
     </div>
   </header>
 
@@ -190,6 +286,59 @@
       {/each}
     </div>
   </section>
+  {#if cabinetOpen}
+    <div
+      class="cabinet-backdrop"
+      role="presentation"
+      onclick={(event) => {
+        if (event.target === event.currentTarget) closeCabinet();
+      }}
+    >
+      <div class="cabinet-dialog" role="dialog" aria-modal="true" aria-labelledby="cabinet-title" tabindex="-1">
+        <header class="cabinet-header">
+          <div class="cabinet-heading">
+            <img src={cabinetIcon} alt="" />
+            <div>
+              <h1 id="cabinet-title">Личный кабинет</h1>
+              <p>Твои тренировочные попытки</p>
+            </div>
+          </div>
+          <button class="cabinet-close" aria-label="Закрыть кабинет" onclick={closeCabinet}>×</button>
+        </header>
+
+        {#if bestAttempt}
+          <section class="best-attempt" aria-label="Лучшая попытка">
+            <span class="cabinet-label">ЛУЧШАЯ ПОПЫТКА</span>
+            <strong>{bestAttempt.score} очков</strong>
+            <span>Время: {formatTime(bestAttempt.durationSeconds)}</span>
+          </section>
+        {:else}
+          <section class="best-attempt empty-best">Сыграй первый раунд — здесь появится лучший результат.</section>
+        {/if}
+
+        <div class="attempts-heading">
+          <h2>История попыток <span>{attempts.length}</span></h2>
+          <button class="clear-results" disabled={attempts.length === 0} onclick={clearAttempts}>Очистить результаты</button>
+        </div>
+        {#if storageError}
+          <p class="storage-error" role="alert">{storageError}</p>
+        {/if}
+        {#if attempts.length}
+          <ol class="attempt-list">
+            {#each attempts as attempt (attempt.id)}
+              <li>
+                <span class="attempt-date">{formatDate(attempt.timestamp)}</span>
+                <strong>{attempt.score} очков</strong>
+                <span>{formatTime(attempt.durationSeconds)}</span>
+              </li>
+            {/each}
+          </ol>
+        {:else}
+          <p class="empty-attempts">Завершённые игры будут записываться здесь.</p>
+        {/if}
+      </div>
+    </div>
+  {/if}
   <div class="footer-note">Набери чтение каны, пока она не коснулась земли</div>
   <div class="damage-flash" class:active={damageFlash} aria-hidden="true"></div>
 </main>
@@ -469,7 +618,8 @@
     touch-action: manipulation;
   }
   .end-button { color: #ffad9e; }
-  .restart-button { color: #b9e8ff; font-size: 29px; }
+  .cabinet-button { overflow: hidden; padding: 0; }
+  .cabinet-button img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
   .pause-button:disabled, .control-button:disabled { opacity: .45; cursor: not-allowed; }
   .pause-icon { font-size: 32px; line-height: 1; font-family: Arial, sans-serif; font-weight: 900; }
   .play-icon { font-size: 20px; }
@@ -577,6 +727,97 @@
     font-family: inherit;
     text-transform: uppercase;
   }
+  .cabinet-backdrop {
+    position: fixed;
+    z-index: 30;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+    background: #07101ddd;
+    backdrop-filter: blur(5px);
+  }
+  .cabinet-dialog {
+    width: min(100%, 560px);
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 20px;
+    color: #edf4ff;
+    background: #182a46;
+    border: 4px solid #5277a7;
+    border-radius: 8px;
+    box-shadow: 8px 8px 0 #091426;
+  }
+  .cabinet-header, .cabinet-heading, .attempts-heading, .attempt-list li {
+    display: flex;
+    align-items: center;
+  }
+  .cabinet-header, .attempts-heading { justify-content: space-between; gap: 12px; }
+  .cabinet-heading { min-width: 0; gap: 12px; }
+  .cabinet-heading img { width: 44px; height: 44px; object-fit: contain; image-rendering: pixelated; }
+  .cabinet-heading h1 { margin: 0; font-size: 22px; }
+  .cabinet-heading p { margin: 4px 0 0; color: #a8bddc; font-size: 12px; }
+  .cabinet-close {
+    width: 36px;
+    height: 36px;
+    flex: 0 0 auto;
+    color: #fff;
+    background: #2b4164;
+    border: 2px solid #5277a7;
+    border-radius: 4px;
+    font-size: 25px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .best-attempt {
+    display: grid;
+    gap: 5px;
+    margin: 18px 0;
+    padding: 14px;
+    background: #263d60;
+    border: 2px solid #f1c95d;
+  }
+  .best-attempt strong { color: #ffe176; font-size: 24px; }
+  .best-attempt > span:last-child { color: #c2d1e8; font-size: 13px; }
+  .cabinet-label { color: #f1d473; font-size: 10px; font-weight: 900; letter-spacing: .12em; }
+  .empty-best { color: #c2d1e8; font-size: 13px; }
+  .attempts-heading { margin-bottom: 8px; }
+  .attempts-heading h2 { margin: 0; font-size: 16px; }
+  .attempts-heading h2 span { color: #a8bddc; font-size: 13px; }
+  .clear-results {
+    padding: 7px 9px;
+    color: #ffd0c9;
+    background: #58354a;
+    border: 1px solid #9a6171;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .clear-results:disabled { opacity: .45; cursor: not-allowed; }
+  .attempt-list {
+    display: grid;
+    gap: 6px;
+    min-height: 0;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0 4px 0 0;
+    list-style: none;
+  }
+  .attempt-list li {
+    min-height: 40px;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 9px;
+    background: #0e1b30;
+    border: 1px solid #344d70;
+    font-size: 12px;
+  }
+  .attempt-list li strong { color: #ffe176; white-space: nowrap; }
+  .attempt-date, .attempt-list li > span:last-child { color: #b5c6df; }
+  .empty-attempts, .storage-error { margin: 12px 0 0; color: #b5c6df; font-size: 13px; }
+  .storage-error { color: #ffad9e; }
   @media (min-width: 768px) {
     .keyboard-card { display: none; }
     .game-card { grid-row: 2; }
@@ -607,7 +848,6 @@
     .pause-button { width: 30px; height: 30px; border-width: 2px; border-radius: 5px; }
     .pause-icon { font-size: 23px; }
     .control-button { width: 30px; height: 30px; border-width: 2px; border-radius: 5px; font-size: 17px; }
-    .restart-button { font-size: 22px; }
     .game-card {
       width: 100%;
       height: 100%;
